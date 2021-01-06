@@ -19,7 +19,7 @@ case class SolverResult(model: Array[Boolean], time: Double, satisfiable: Boolea
 
 
 class ScalAT(problemName: String = "", workingpath: String = "working/") {
-  //Working directory path. Files named "tmp.dimacs" and "tmp.res" will be stored there,
+  // Working directory path. Files named "tmp.dimacs" and "tmp.res" will be stored there,
   // overwriting any existing file with that name. These are the input and the output of the solver respectively.
   // Read and write privileges to the directory are required
 
@@ -46,16 +46,16 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
   // List of clauses in  DIMACS format (lists of Int (literals), negative for the negated literals)
   var nclauses: Int = 1
 
-  //Result of the call to the SAT solver
+  // Result of the call to the SAT solver
   var satisfiable = false
 
-  //SAT solver solving statistics
+  // SAT solver solving statistics
   var conflicts = 0
   var propagations = 0
   var decisions = 0
   var time: Double = 0.0
 
-  //Model of the formula (if it is satisfiable)
+  // Model of the formula (if it is satisfiable)
   private var model: Array[Boolean] = new Array[Boolean](1)
 
   val getTrue = 1 //Trivially true variable. Used as the "true" constant
@@ -112,14 +112,14 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
   }
 
 
-  //Get the value of var 'v' in the found model.
-  //It is required that we have previously called teh solve() method and that it has retured true
+  // Get the value of var 'v' in the found model.
+  // It is required that we have previously called teh solve() method and that it has retured true
   def getValue(v: Int): Boolean = model(v)
 
-  //Get number of clauses (ignoring true and false constant setting)
+  // Get number of clauses (ignoring true and false constant setting)
   def getNClauses: Int = nclauses - 1
 
-  //Get number of variables (ignoring true and false constant)
+  // Get number of variables (ignoring true and false constant)
   def getNVars: Int = vars - 1
 
   //Get solver statistics
@@ -132,56 +132,73 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
   def getTime: Double = time
 
 
-  //Adds the clause l(0) \/ l(1) \/ ... \/ l(l.length-1). The empty list (clause) is also supported
+  // Adds the clause l(0) \/ l(1) \/ ... \/ l(l.length-1). The empty list (clause) is also supported
   def addClause(c: List[Int]): Unit = {
     for (l <- c) preDimacs.write(l.toString + " ")
     preDimacs.write("0\n")
     nclauses += 1
   }
 
-  //Adds the quadratic encoding of the at-most-one
+  // Adds the quadratic encoding of the at-most-one
   def addAMOQuad(l: List[Int]): Unit = {
     for (i <- 0 to l.length - 2)
       for (j <- i + 1 until l.length)
         addClause(-l(i) :: -l(j) :: List())
   }
 
-  //Adds the logaritic encoding of the at-most-one
-  def addAMOLog(x: List[Int]): Unit = ???
+  // Les variables auxiliars amb valor més gran tenen més pes
+  def addAMOLog(x: List[Int]): Unit = {
+    var novesVars = List[Int]()
+    for(i <- 0 until (x.length - 1).toBinaryString.length)
+      novesVars = newVar() :: novesVars
 
-  //Adds the encoding of the at-least-one.
+    for(i <- 0 until x.length) {
+      val numBinari = i.toBinaryString.toList
+      val zeros = List.fill(novesVars.length-numBinari.length)('0')
+      val binari = zeros ::: numBinari
+
+      for(j <- 0 until binari.length) {
+        if(binari(j) == '0')
+          addClause(-x(i) :: -novesVars(j) :: List())
+        else
+          addClause(-x(i) :: novesVars(j) :: List())
+      }
+    }
+  }
+
+  // Adds the encoding of the at-least-one.
   def addALO(l: List[Int]): Unit = addClause(l)
 
-  //Adds the encoding of the exactly-one using the quadratic at-most-one
+  // Adds the encoding of the exactly-one using the quadratic at-most-one
   def addEOQuad(l: List[Int]): Unit = {
     addAMOQuad(l)
     addALO(l)
   }
 
-  //Adds the encoding of the exactly-one using the logaritmic at-most-one
+  // Adds the encoding of the exactly-one using the logaritmic at-most-one
   def addEOLog(l: List[Int]): Unit = {
     addAMOLog(l)
     addALO(l)
   }
 
-  //Adds the encoding of a 2 comparator
-  //The arguments are literals
-  //All variables must have been created with one of the newVar methods.
+  // Adds the encoding of a 2 comparator
+  // The arguments are literals
+  // All variables must have been created with one of the newVar methods.
   def addCMP2(x1: Int, x2: Int, y1: Int, y2: Int) {
-    //y1 <-> x1 \/ x2
+    // y1 <-> x1 \/ x2
     addClause(-y1 :: x1 :: x2 :: List())
     addClause(-x1 :: y1 :: List())
     addClause(-x2 :: y1 :: List())
 
-    //y2 <-> x1 /\ x2
+    // y2 <-> x1 /\ x2
     addClause(-y2 :: x1 :: List())
     addClause(-y2 :: x2 :: List())
     addClause(-x1 :: -x2 :: y2 :: List())
   }
 
-  //Ads the encodig of "sort x decreasingly into y". Both lists must have equal length, and empty lists are not allowed
-  //The lists contain literals
-  //All variables must have been created with one of the newVar methods.
+  // Ads the encodig of "sort x decreasingly into y". Both lists must have equal length, and empty lists are not allowed
+  // The lists contain literals
+  // All variables must have been created with one of the newVar methods.
   def addSorter(x: List[Int], y: List[Int]) {
     assert(x.length == y.length)
     assert(x.nonEmpty)
@@ -213,10 +230,10 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
     }
   }
 
-  //Adds the encoding of "merge the decreasingly sorted lists x and xp into y"
-  //x and xp must be of equal lenght and nonempty. y must have twice the lenght of x
-  //The lists contain literals
-  //All variables must have been created with one of the newVar methods.
+  // Adds the encoding of "merge the decreasingly sorted lists x and xp into y"
+  // x and xp must be of equal lenght and nonempty. y must have twice the lenght of x
+  // The lists contain literals
+  // All variables must have been created with one of the newVar methods.
   def addMerge(x: List[Int], xp: List[Int], y: List[Int]) {
     assert(x.length == xp.length)
     assert(x.nonEmpty)
@@ -245,37 +262,53 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
 
   }
 
-  //Adds the encoding of an exactly-K constraint.
+  // Adds the encoding of an exactly-K constraint.
   // x can be empty, and K take any value from -infinity to infinity
-  def addEK(x: List[Int], K: Int): Unit = ???
+  def addEK(x: List[Int], K: Int): Unit = {
+    val y = newVarArray(x.length).toList
+    addSorter(x, y)
+
+    addClause(y(K) :: List())
+    addClause(-y(K+1) :: List())
+  }
 
 
 
-  //Adds the encoding of an at-least-K constraint.
+  // Adds the encoding of an at-least-K constraint.
   // x can be empty, and K take any value from -infinity to infinity
-  def addALK(x: List[Int], K: Int): Unit = ???
+  def addALK(x: List[Int], K: Int): Unit = {
+    val y = newVarArray(x.length).toList
+    addSorter(x, y)
 
-  //Adds the encoding of an at-most-K constraint.
+    addClause(y(K) :: List())
+  }
+
+  // Adds the encoding of an at-most-K constraint.
   // x can be empty, and K take any value from -infinity to infinity
-  def addAMK(x: List[Int], K: Int): Unit = ???
+  def addAMK(x: List[Int], K: Int): Unit = {
+    val y = newVarArray(x.length).toList
+    addSorter(x, y)
+
+    addClause(-y(K+1) :: List())
+  }
 
 
-  //Adds a PB constraint of the form q[0]x[0] + q[1]x[1] + ... + q[n]x[n] <= K
-  //q must be a list of non-negative coefficients, and x a list of literals.
+  // Adds a PB constraint of the form q[0]x[0] + q[1]x[1] + ... + q[n]x[n] <= K
+  // q must be a list of non-negative coefficients, and x a list of literals.
   def addPB(q: List[Int], x: List[Int], K: Int) {
-    //We can get rid of literals with coefficient = 0
+    // We can get rid of literals with coefficient = 0
     val x2 = x
     x2.zip(q).collect { case (lit, 0) => lit }
 
     if (K < 0)
-      addClause(List()); //Empty clause
+      addClause(List()); // Empty clause
 
-    else if (K == 0) { //All literals must be false
+    else if (K == 0) { // All literals must be false
       for (l <- x2)
         addClause(-l :: List())
     }
 
-    else if (0 < K && K < x.sum) { //Otherwise, constraint trivially satisfied
+    else if (0 < K && K < x.sum) { // Otherwise, constraint trivially satisfied
       val n = x2.length
       var Sout: Array[Int] = new Array[Int](K)
       for (i <- 0 until K)
@@ -311,7 +344,7 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
   }
 
 
-  //Returns true iff x is power of 2. Non-negative integer required
+  // Returns true iff x is power of 2. Non-negative integer required
   def isPowerOfTwo(x: Int): Boolean = {
     var n = x
     if (n == 0) return false
@@ -336,8 +369,8 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
     dimacs.close()
   }
 
-  //Calls the sat4j solver and retrieves the result of the call
-  //Returns whether the formula CNF in 'clauses' is satisfiable, and if so, stores a model into 'model'
+  // Calls the sat4j solver and retrieves the result of the call
+  // Returns whether the formula CNF in 'clauses' is satisfiable, and if so, stores a model into 'model'
 
   private def mapModelResults(modelInt: Array[Int]) = {
     model = new Array[Boolean](vars + 1)
