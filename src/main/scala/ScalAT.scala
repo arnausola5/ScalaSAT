@@ -268,8 +268,8 @@ class ScalAT(problemName: String = "", workingpath: String = "working/") {
     val y = newVarArray(x.length).toList
     addSorter(x, y)
 
-    addClause(y(K) :: List())
-    addClause(-y(K+1) :: List())
+    addClause(y(K-1) :: List())
+    addClause(-y(K) :: List())
   }
 
 
