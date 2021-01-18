@@ -1,4 +1,5 @@
 import NQueens.{e, tauler}
+import scala.io.StdIn.readLine
 
 object CrowdedChessboard extends App {
 
@@ -34,7 +35,19 @@ object CrowdedChessboard extends App {
   val e = new ScalAT("Crowded")
 
   // Mida del tauler
-  val n = 14
+  println("CROWDED CHESSBOARD")
+  print("Entra la mida del tauler: ")
+  val n: Int = readLine().toInt
+  println("Opcions \n\t '1' per encoding quadratic \n\t '2' per encoding logaritmic")
+  print("Tria la opcio d'encoding: ")
+  val opcio: Int = readLine().toInt
+  print("Vols trencar simetries (S/N)? ")
+  val trencaSim: String = readLine()
+  print("Vols afegir clausules implicades (S/N)? ")
+  val implicades: String = readLine()
+  print("Vols afegir un cavall mes (UNSAT) (S/N)? ")
+  val unsat: String = readLine()
+
 
   // A cada fila i a cada columna nomes hi pot anar 1 element del tauler donat mitjançant ExactlyOne
   // Per la opcio 1 s'usa l'encoding quadratic del EO i per la 2 l'encoding Logaritmic
@@ -75,21 +88,73 @@ object CrowdedChessboard extends App {
 
   }
 
+  def clausulesCavalls(tauler:Array[Array[Int]],opcio:Int) = {
+
+    val cavallsMax = Map(5 -> 5, 6 -> 9, 7 -> 11, 8 -> 21, 9 -> 29, 10 -> 37, 11 -> 47, 12 -> 57, 13 -> 69, 14 -> 81, 15 -> 94, 16 -> 106)
+    var nCavalls = cavallsMax.getOrElse(n, 0)
+    if (unsat == 'S')
+      nCavalls = nCavalls +1
+
+    e.addEK(taulerCavalls.flatMap(_.toList).toList, nCavalls)
+
+    for(i <- 0 until n-1; j <- 0 until n) {
+      val moviments = List((i+1, j-2), (i+2, j-1), (i+2, j+1), (i+1, j+2))
+      for((f, c) <- moviments; if f < n && c >= 0 && c < n)
+        if (opcio == 1) e.addAMOQuad(List(tauler(i)(j), tauler(f)(c)))
+        else e.addAMOLog(List(tauler(i)(j), tauler(f)(c)))
+    }
+  }
+
+  def simetriesAlfils() = {
+    e.addClause(taulerAlfils(0)(0) :: List())
+    e.addClause(taulerAlfils(n-1)(0) :: List())
+
+    e.addClause(-taulerAlfils(0)(n-1) :: List())
+    e.addClause(-taulerAlfils(n-1)(n-1) :: List())
+
+    e.addClause(-taulerReines(0)(0) :: List())
+    e.addClause(-taulerTorres(0)(0) :: List())
+    e.addClause(-taulerCavalls(0)(0) :: List())
+    e.addClause(-taulerReines(n-1)(0) :: List())
+    e.addClause(-taulerTorres(n-1)(0) :: List())
+    e.addClause(-taulerCavalls(n-1)(0) :: List())
+  }
+
+
+  def AMOCaselles(opcio:Int) = {
+
+
+    for(i <- 0 until n; j <- 0 until n)
+      if (opcio == 1) e.addAMOQuad(List(taulerReines(i)(j), taulerTorres(i)(j), taulerAlfils(i)(j), taulerCavalls(i)(j)))
+      else e.addAMOLog(List(taulerReines(i)(j), taulerTorres(i)(j), taulerAlfils(i)(j), taulerCavalls(i)(j)))
+  }
+
+  def clauslesImplicades() = {
+
+    e.addEK(taulerReines.flatMap(_.toList).toList, n)
+    e.addEK(taulerTorres.flatMap(_.toList).toList, n)
+    e.addEK(taulerAlfils.flatMap(_.toList).toList, 2*n - 2)
+  }
+
   val taulerReines: Array[Array[Int]] = e.newVar2DArray(n, n)
-  for(i <- taulerReines) e.addEOLog(i.toList)
+  clausulesReines(taulerReines,opcio)
+  /*for(i <- taulerReines) e.addEOLog(i.toList)
   for(i <- taulerReines.transpose) e.addEOLog(i.toList)
   for(i <- 0 to 2*n-2)
     e.addAMOLog((for(j <- 0 until n; k <- 0 until n; if j+k == i) yield taulerReines(j)(k)).toList)
   for(i <- -n+1 until n)
     e.addAMOLog((for(j <- 0 until n; k <- 0 until n; if j-k == i) yield taulerReines(j)(k)).toList)
-
+  */
   val taulerTorres = e.newVar2DArray(n, n)
-
+  clausulesTorres(taulerTorres,opcio)
+  /*
   for(i <- taulerTorres) e.addEOLog(i.toList)
   for(i <- taulerTorres.transpose) e.addEOLog(i.toList)
-
+  */
   val taulerAlfils = e.newVar2DArray(n, n)
+  clausulesAlfils(taulerAlfils,opcio)
 
+  /*
   e.addClause(taulerAlfils(0)(0) :: List())
   e.addClause(taulerAlfils(n-1)(0) :: List())
 
@@ -100,9 +165,11 @@ object CrowdedChessboard extends App {
     e.addEOLog((for(j <- 0 until n; k <- 0 until n; if j+k == i) yield taulerAlfils(j)(k)).toList)
   for(i <- -n+2 until n-1)
     e.addEOLog((for(j <- 0 until n; k <- 0 until n; if j-k == i) yield taulerAlfils(j)(k)).toList)
+  */
 
   val taulerCavalls = e.newVar2DArray(n, n)
-
+  clausulesCavalls(taulerCavalls,opcio)
+  /*
   for(i <- 0 until n-1; j <- 0 until n) {
     val moviments = List((i+1, j-2), (i+2, j-1), (i+2, j+1), (i+1, j+2))
     for((f, c) <- moviments; if f < n && c >= 0 && c < n) e.addAMOLog(List(taulerCavalls(i)(j), taulerCavalls(f)(c)))
@@ -110,20 +177,29 @@ object CrowdedChessboard extends App {
 
   val cavallsMax = Map(5 -> 5, 6 -> 9, 7 -> 11, 8 -> 21, 9 -> 29, 10 -> 37, 11 -> 47, 12 -> 57, 13 -> 69, 14 -> 81, 15 -> 94, 16 -> 106)
 
+
   e.addEK(taulerCavalls.flatMap(_.toList).toList, cavallsMax.getOrElse(n, 0))
-  e.addEK(taulerReines.flatMap(_.toList).toList, 14)
-  e.addEK(taulerTorres.flatMap(_.toList).toList, 14)
-  e.addEK(taulerAlfils.flatMap(_.toList).toList, 26)
+  e.addEK(taulerReines.flatMap(_.toList).toList, n)
+  e.addEK(taulerTorres.flatMap(_.toList).toList, n)
+  e.addEK(taulerAlfils.flatMap(_.toList).toList, 2*n - 2)
+  */
 
+  AMOCaselles(opcio)
+  //for(i <- 0 until n; j <- 0 until n) e.addAMOLog(List(taulerReines(i)(j), taulerTorres(i)(j), taulerAlfils(i)(j), taulerCavalls(i)(j)))
 
-  for(i <- 0 until n; j <- 0 until n) e.addAMOLog(List(taulerReines(i)(j), taulerTorres(i)(j), taulerAlfils(i)(j), taulerCavalls(i)(j)))
+  if (implicades == 'S')
+    clauslesImplicades()
 
+  if (trencaSim == 'S')
+    simetriesAlfils()
+  /*
   e.addClause(-taulerReines(0)(0) :: List())
   e.addClause(-taulerTorres(0)(0) :: List())
   e.addClause(-taulerCavalls(0)(0) :: List())
   e.addClause(-taulerReines(n-1)(0) :: List())
   e.addClause(-taulerTorres(n-1)(0) :: List())
-  e.addClause(-taulerCavalls(n-1)(0) :: List())
+  e.addClause(-taulerCavalls(n-1)(0) :: List())*/
+
 
   val result = e.solve()
 
