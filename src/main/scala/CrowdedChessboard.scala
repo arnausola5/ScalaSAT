@@ -36,8 +36,46 @@ object CrowdedChessboard extends App {
   // Mida del tauler
   val n = 14
 
-  val taulerReines: Array[Array[Int]] = e.newVar2DArray(n, n)
+  // A cada fila i a cada columna nomes hi pot anar 1 element del tauler donat mitjançant ExactlyOne
+  // Per la opcio 1 s'usa l'encoding quadratic del EO i per la 2 l'encoding Logaritmic
+  def files_i_columnes(tauler:Array[Array[Int]], opcio:Int) = {
+    for (i <- tauler)
+      if (opcio == 1) e.addEOQuad(i.toList) else e.addEOLog(i.toList)
+    for (i <- tauler.transpose)
+      if(opcio == 1) e.addEOQuad(i.toList) else e.addEOLog(i.toList)
+  }
 
+
+  def clausulesReines(tauler:Array[Array[Int]], opcio:Int) = {
+
+    files_i_columnes(tauler, opcio)
+
+    for (i <- 0 to 2 * n - 2)
+      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
+      else e.addAMOLog((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
+
+    for (i <- -n + 1 until n)
+      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
+      else e.addAMOLog((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
+  }
+
+  def clausulesTorres(tauler:Array[Array[Int]], opcio:Int ) = {
+    files_i_columnes(tauler,opcio)
+  }
+
+  def clausulesAlfils(tauler:Array[Array[Int]], opcio:Int) = {
+
+    for (i <- 0 to 2 * n - 2)
+      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
+      else e.addEOLog((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
+
+    for (i <- -n + 1 until n)
+      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
+      else e.addEOLog((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
+
+  }
+
+  val taulerReines: Array[Array[Int]] = e.newVar2DArray(n, n)
   for(i <- taulerReines) e.addEOLog(i.toList)
   for(i <- taulerReines.transpose) e.addEOLog(i.toList)
   for(i <- 0 to 2*n-2)
