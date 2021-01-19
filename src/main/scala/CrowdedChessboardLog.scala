@@ -1,3 +1,4 @@
+import CrowdedChessboardQuad.{e, n, taulerAlfils}
 import NQueens.{e, tauler}
 
 import scala.io.StdIn.readLine
@@ -31,7 +32,8 @@ object CrowdedChessboardLog extends App {
 
   val taulerAlfils = e.newVar2DArray(n, n)
 
-
+  e.addEOLog(List(taulerAlfils(0)(0), taulerAlfils(n-1)(n-1)))
+  e.addEOLog(List(taulerAlfils(0)(n-1), taulerAlfils(n-1)(0)))
 
   for(i <- 1 until 2*n-2)
     e.addEOLog((for(j <- 0 until n; k <- 0 until n; if j+k == i) yield taulerAlfils(j)(k)).toList)

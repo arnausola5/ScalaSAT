@@ -30,7 +30,8 @@ object CrowdedChessboardQuad extends App {
 
   val taulerAlfils = e.newVar2DArray(n, n)
 
-
+  e.addEOQuad(List(taulerAlfils(0)(0), taulerAlfils(n-1)(n-1)))
+  e.addEOQuad(List(taulerAlfils(0)(n-1), taulerAlfils(n-1)(0)))
 
   for(i <- 1 until 2*n-2)
     e.addEOQuad((for(j <- 0 until n; k <- 0 until n; if j+k == i) yield taulerAlfils(j)(k)).toList)
