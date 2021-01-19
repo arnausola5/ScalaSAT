@@ -78,12 +78,12 @@ object CrowdedChessboard extends App {
 
   def clausulesAlfils(tauler:Array[Array[Int]], opcio:Int) = {
 
-    for (i <- 0 to 2 * n - 2)
-      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
+    for (i <- 0 until 2 * n - 2)
+      if (opcio == 1) e.addEOQuad((for(j <- 0 until n; k <- 0 until n; if j+k == i) yield tauler(j)(k)).toList)
       else e.addEOLog((for (j <- 0 until n; k <- 0 until n; if j + k == i) yield tauler(j)(k)).toList)
 
-    for (i <- -n + 1 until n)
-      if (opcio == 1) e.addAMOQuad((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
+    for (i <- -n + 2 until n-1)
+      if (opcio == 1) e.addEOQuad((for(j <- 0 until n; k <- 0 until n; if j-k == i) yield tauler(j)(k)).toList)
       else e.addEOLog((for (j <- 0 until n; k <- 0 until n; if j - k == i) yield tauler(j)(k)).toList)
 
   }
